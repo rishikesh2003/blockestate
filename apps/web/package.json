@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next && rm -rf .turbo && rm -rf node_modules"
   },
   "dependencies": {
+    "@blockestate/data": "workspace:*",
     "@clerk/nextjs": "^6.9.6",
     "@hookform/resolvers": "^3.9.0",
     "@next/swc-wasm-nodejs": "13.5.1",
