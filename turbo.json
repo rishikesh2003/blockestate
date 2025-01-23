@@ -16,6 +16,9 @@
     "lint": {
     },
     "check-types": {
+    },
+    "clean": {
+      "cache": false
     }
   }
 }

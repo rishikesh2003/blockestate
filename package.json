@@ -1,6 +1,5 @@
 {
   "name": "blockestate",
-  "private": true,
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -15,9 +14,13 @@
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "npm@10.9.0",
+  "packageManager": "bun@1.1.43",
   "workspaces": [
     "apps/*",
     "packages/*"
+  ],
+  "trustedDependencies": [
+    "@clerk/shared"
+
   ]
 }

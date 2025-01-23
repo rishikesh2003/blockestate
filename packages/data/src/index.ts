@@ -13,5 +13,4 @@ const sql = neon(DATABASE_URL)
 
 export const db = drizzle(sql);
 
-export * from './db/schema';
 
