@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Building2, Home, LayoutDashboard, Plus } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 
 const routes = [
   {
@@ -38,6 +39,7 @@ export function Sidebar() {
           <Home className="h-8 w-8 text-primary" />
           <h1 className="text-2xl font-bold ml-2">BlockEstate</h1>
         </Link>
+
         <div className="space-y-1">
           {routes.map((route) => (
             <Link
