@@ -5,14 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="091d116c-6ce4-4450-a6e7-79a5f2a986a1" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/app/(main)/dashboard/add-property/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/app/(main)/dashboard/buy-properties/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/app/(main)/dashboard/layout.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/app/(main)/dashboard/your-listings/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/apps/web/components/dashboard/sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/prettier.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/prettier.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.npmrc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/data/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/packages/data/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/data/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/packages/data/src/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/turbo.json" beforeDir="false" afterPath="$PROJECT_DIR$/turbo.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/.env" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/(landing)/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/(landing)/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/app/(main)/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/app/(main)/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/apps/web/components-landing/navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/web/components-landing/navbar.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,21 +63,23 @@
     "git-widget-placeholder": "main",
     "javascript.nodejs.core.library.configured.version": "22.12.0",
     "javascript.nodejs.core.library.typings.version": "22.10.5",
-    "last_opened_file_path": "/home/rishikesh/Programming/Personal/blockestate",
+    "last_opened_file_path": "/home/rishikesh/Programming/Personal/blockestate/apps/web/app/(main)/dashboard/your-listings",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_interpreter_path": "/home/rishikesh/.nvm/versions/node/v22.13.0/bin/node",
     "nodejs_package_manager_path": "npm",
-    "prettierjs.PrettierConfiguration.Package": "\\\\wsl.localhost\\Debian\\home\\rishikesh\\Programming\\Personal\\blockestate\\node_modules\\prettier",
-    "settings.editor.selected.configurable": "settings.nodejs",
+    "prettierjs.PrettierConfiguration.Package": "/home/rishikesh/Programming/Personal/blockestate/node_modules/prettier",
+    "settings.editor.selected.configurable": "settings.javascript.prettier",
     "ts.external.directory.path": "/home/rishikesh/Programming/Personal/blockestate/node_modules/typescript/lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/apps/web/app/(main)/dashboard/your-listings" />
+      <recent name="$PROJECT_DIR$/apps/web/app/(main)/dashboard/buy-properties" />
       <recent name="\\wsl.localhost\Debian\home\rishikesh\Programming\Personal\blockestate\app\(landing)" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -102,7 +107,7 @@
       <workItem from="1735951463814" duration="2013000" />
       <workItem from="1735966773757" duration="2915000" />
       <workItem from="1735989483250" duration="5272000" />
-      <workItem from="1737619544866" duration="1125000" />
+      <workItem from="1737619544866" duration="4896000" />
     </task>
     <servers />
   </component>
