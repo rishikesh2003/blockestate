@@ -1,0 +1,14 @@
+{
+  "name": "@blockestate/contracts",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "hardhat": "^2.22.18"
+  },
+  "scripts": {
+    "clean": "rm -rf node_modules && rm -rf .turbo"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
