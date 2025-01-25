@@ -69,7 +69,7 @@ const Page = async () => {
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">
-          Welcome, {user.fullName}.
+          Welcome, {user.username}.
         </h2>
         <p className="text-muted-foreground">
           Overview of your real estate portfolio

@@ -1,18 +1,4 @@
-const hre = require("hardhat");
-
-async function main() {
-  const PropertyRegistry =
-    await hre.ethers.getContractFactory("PropertyRegistry");
-  const registry = await PropertyRegistry.deploy();
-
-  await registry.deployed();
-
-  console.log("PropertyRegistry deployed to:", registry.address);
-}
-
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+const governmentAddress = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
+const PropertyRegistry = await ethers.getContractFactory("PropertyRegistry");
+const registry = await PropertyRegistry.deploy(governmentAddress);
+console.log("PropertyRegistry deployed to:", registry.address);

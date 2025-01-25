@@ -10,5 +10,10 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "chai": "^5.1.2",
+    "ethers": "^6.13.5"
   }
 }

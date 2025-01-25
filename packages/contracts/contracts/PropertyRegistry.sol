@@ -10,15 +10,23 @@ contract PropertyRegistry {
         address owner;
         string documentHash;
         bool isForSale;
+        bool isVerified;
     }
 
     uint256 public propertyCount;
     mapping(uint256 => Property) public properties;
+    address public government;
 
     event PropertyAdded(uint256 id, string name, address owner);
     event PropertyListedForSale(uint256 id, uint256 price);
     event OwnershipTransferred(uint256 id, address previousOwner, address newOwner);
     event PropertyBought(uint256 id, address buyer);
+    event PropertyVerified(uint256 id, address verifiedBy);
+
+    // Constructor to set the government address
+    constructor(address _government) {
+        government = _government;
+    }
 
     // Add a new property
     function addProperty(
@@ -35,7 +43,8 @@ contract PropertyRegistry {
             price,
             msg.sender,
             documentHash,
-            false
+            false,
+            false // Initially, the property is not verified
         );
         emit PropertyAdded(propertyCount, name, msg.sender);
     }
@@ -44,6 +53,7 @@ contract PropertyRegistry {
     function listPropertyForSale(uint256 propertyId, uint256 price) public {
         Property storage property = properties[propertyId];
         require(property.owner == msg.sender, "Only the owner can list the property for sale");
+        require(property.isVerified, "Property must be verified before being listed for sale"); // New check
         property.isForSale = true;
         property.price = price;
         emit PropertyListedForSale(propertyId, price);
@@ -63,6 +73,14 @@ contract PropertyRegistry {
 
         emit PropertyBought(propertyId, msg.sender);
         emit OwnershipTransferred(propertyId, previousOwner, msg.sender);
+    }
+
+    // Verify a property (only government can call)
+    function verifyProperty(uint256 propertyId) public {
+        require(msg.sender == government, "Only the government can verify properties");
+        Property storage property = properties[propertyId];
+        property.isVerified = true;
+        emit PropertyVerified(propertyId, msg.sender);
     }
 
     // Get property details
