@@ -214,7 +214,7 @@ export function VerifyActions({
         <FileCheck className="h-4 w-4" />
         Verify
       </Button>
-      <Button
+      {/* <Button
         className="flex items-center gap-1"
         variant="destructive"
         size="sm"
@@ -223,7 +223,7 @@ export function VerifyActions({
       >
         <FileX className="h-4 w-4" />
         Reject
-      </Button>
+      </Button> */}
     </div>
   );
 }
