@@ -75,6 +75,7 @@ const Page = async () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Document</TableHead>
@@ -88,6 +89,11 @@ const Page = async () => {
                       {property.name}
                     </TableCell>
                     <TableCell>{property.location}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px] truncate">
+                        {property.description || "-"}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {property.price ? `ETH ${property.price}` : "-"}
                     </TableCell>
@@ -123,12 +129,13 @@ const Page = async () => {
                       {property.isVerified ? (
                         <ListForSale
                           propertyId={property.id}
+                          blockchainId={
+                            property.blockchainId !== null
+                              ? property.blockchainId
+                              : undefined
+                          }
                           isForSale={property.isForSale ?? false}
                           currentPrice={property.price ?? undefined}
-                          onListingUpdate={() => {
-                            // This will trigger a refresh of the page data
-                            window.location.reload();
-                          }}
                         />
                       ) : (
                         <div className="text-sm text-muted-foreground">

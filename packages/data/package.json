@@ -7,7 +7,9 @@
     "generate": "drizzle-kit generate",
     "studio": "drizzle-kit studio",
     "clean": "rm -rf node_modules && rm -rf .turbo",
-    "build:migrate": "drizzle-kit migrate"
+    "build:migrate": "drizzle-kit migrate",
+    "update-gov": "tsx scripts/update-to-government.ts",
+    "update-gov-auth": "tsx scripts/update-to-government-by-auth.ts"
   },
   "author": "",
   "license": "ISC",

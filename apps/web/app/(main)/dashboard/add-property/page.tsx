@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { ethers } from "ethers";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -26,19 +25,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Textarea } from "@/components/ui/textarea";
-
-// TypeScript declaration for Ethereum provider
-declare global {
-  interface Window {
-    ethereum: any;
-  }
-}
-
-// Smart contract ABI for property registration
-const contractABI = [
-  "function registerProperty(string name, string location, string documentHash, uint256 price) returns (uint256)",
-  "event PropertyRegistered(uint256 indexed propertyId, address indexed owner, string name, uint256 price)",
-];
+import { addProperty } from "@/lib/blockchain";
+import { ethers } from "ethers";
 
 // Form validation schema
 const formSchema = z.object({
@@ -50,14 +38,20 @@ const formSchema = z.object({
       message: "Price must be a valid positive number",
     }),
   description: z.string().optional(),
+  imgUrl: z.string().url("Please enter a valid image URL"),
 });
+
+// TypeScript declaration for Ethereum provider
+declare global {
+  interface Window {
+    ethereum: any;
+  }
+}
 
 const Page = () => {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -67,40 +61,13 @@ const Page = () => {
       location: "",
       price: "",
       description: "",
+      imgUrl: "",
     },
   });
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setDocumentFile(e.target.files[0]);
-    }
-  };
-
-  const uploadToIPFS = async (file: File): Promise<string> => {
-    try {
-      // In a real implementation, you would upload to IPFS or your storage service
-      // For this demo, we'll simulate an upload and return a fake hash
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate upload delay
-
-      // Return a fake IPFS hash
-      return `ipfs-${Date.now()}-${file.name.replace(/\s/g, "")}`;
-    } catch (error) {
-      console.error("Error uploading to IPFS:", error);
-      throw new Error("Failed to upload file");
     }
   };
 
@@ -109,99 +76,107 @@ const Page = () => {
       setIsUploading(true);
       toast.info("Processing your property...");
 
-      if (!imageFile) {
-        toast.error("Please upload a property image");
-        setIsUploading(false);
-        return;
-      }
-
       if (!documentFile) {
         toast.error("Please upload property documents");
         setIsUploading(false);
         return;
       }
 
-      // Check if browser has Ethereum provider (MetaMask)
-      if (!window.ethereum) {
-        throw new Error(
-          "No Ethereum wallet detected. Please install MetaMask."
-        );
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append("name", values.name);
+      formData.append("location", values.location);
+      formData.append("price", values.price);
+      formData.append("description", values.description || "");
+      formData.append("imgUrl", values.imgUrl);
+      formData.append("isForSale", "false");
+      formData.append("document", documentFile);
+
+      // First upload files and create database entry
+      const response = await fetch("/api/properties", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add property");
       }
 
-      // Upload files to IPFS or storage service
-      const imageUrl = await uploadToIPFS(imageFile);
-      const documentUrl = await uploadToIPFS(documentFile);
+      const data = await response.json();
+      console.log("Property created in database:", data);
 
-      // Generate a hash of the document for blockchain storage
-      const documentHash = ethers.keccak256(ethers.toUtf8Bytes(documentUrl));
+      // Now add to blockchain via MetaMask
+      if (!window.ethereum) {
+        throw new Error(
+          "MetaMask is not installed. Please install MetaMask to use this feature."
+        );
+      }
 
       // Request account access
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      const ownerAddress = accounts[0];
 
-      // Get contract address from environment or config
-      const contractAddress =
-        process.env.NEXT_PUBLIC_PROPERTY_CONTRACT_ADDRESS || "";
+      if (!accounts || accounts.length === 0) {
+        throw new Error(
+          "No Ethereum accounts found. Please connect your MetaMask wallet."
+        );
+      }
 
       // Create a provider and signer
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      // Create contract instance
-      const contract = new ethers.Contract(
-        contractAddress,
-        contractABI,
-        signer
+      // Call blockchain function to add property
+      toast.info("Confirm the transaction in your MetaMask wallet");
+
+      const blockchainId = await addProperty(
+        signer,
+        data.name,
+        data.location,
+        data.price,
+        data.documentHash
       );
 
-      toast.info("Please confirm the transaction in your wallet");
+      console.log("Blockchain ID:", blockchainId);
 
-      // Register property on blockchain
-      const tx = await contract.registerProperty(
-        values.name,
-        values.location,
-        documentHash,
-        ethers.parseEther(values.price),
-        { gasLimit: 500000 }
+      // Update the database record with the blockchain ID
+      console.log(
+        "Updating database with blockchain ID:",
+        blockchainId,
+        "for property ID:",
+        data.id
       );
 
-      toast.loading("Registering property on blockchain...");
-      const receipt = await tx.wait();
-
-      // Extract property ID from events
-      let blockchainId = 0;
-      const event = receipt.logs
-        .filter((log: any) => log.fragment?.name === "PropertyRegistered")
-        .map((log: any) => contract.interface.parseLog(log))[0];
-
-      if (event) {
-        blockchainId = Number(event.args.propertyId);
+      if (!data.id) {
+        console.error("Error: Property ID is missing in the API response");
+        toast.error("Error: Property ID is missing in the API response");
+        return;
       }
 
-      // Save to database
-      const response = await fetch("/api/properties", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: values.name,
-          location: values.location,
-          price: values.price,
-          blockchainId,
-          documentUrl,
-          documentHash,
-          imgUrl: imageUrl,
-          description: values.description,
-          isForSale: true,
-        }),
-      });
+      const updateResponse = await fetch(
+        `/api/properties/${data.id}?action=update-blockchain-id`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ blockchainId }),
+        }
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save property to database");
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        console.error("Update blockchainId error:", {
+          status: updateResponse.status,
+          statusText: updateResponse.statusText,
+          body: errorData,
+        });
+
+        toast.warning(
+          `Property was added but blockchain ID could not be updated in the database: ${errorData.error || updateResponse.statusText}`
+        );
       }
 
       toast.success("Property added successfully", {
@@ -212,19 +187,10 @@ const Page = () => {
       router.push("/dashboard/your-listings");
     } catch (error: any) {
       console.error("Error adding property:", error);
-
-      if (error.code === 4001) {
-        toast.error("Transaction rejected", {
-          description: "You declined the transaction in your wallet.",
-        });
-      } else {
-        toast.error("Failed to add property", {
-          description:
-            error instanceof Error
-              ? error.message
-              : "An unknown error occurred",
-        });
-      }
+      toast.error("Failed to add property", {
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
+      });
     } finally {
       setIsUploading(false);
     }
@@ -315,26 +281,19 @@ const Page = () => {
                 )}
               />
 
-              <div className="space-y-2">
-                <Label htmlFor="propertyImage">Property Image</Label>
-                <Input
-                  id="propertyImage"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  required
-                />
-                {imagePreview && (
-                  <div className="mt-2">
-                    <p className="text-sm mb-1">Preview:</p>
-                    <img
-                      src={imagePreview}
-                      alt="Property preview"
-                      className="w-full max-w-md h-40 object-cover rounded-md"
-                    />
-                  </div>
+              <FormField
+                control={form.control}
+                name="imgUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Property Image URL</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter image URL" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </div>
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="documents">Property Documents</Label>

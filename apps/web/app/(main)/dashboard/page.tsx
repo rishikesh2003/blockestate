@@ -140,6 +140,11 @@ const Page = async () => {
                           : "Pending Verification"}
                       </p>
                     </div>
+                    {property.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {property.description}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       Status: {property.isForSale ? "For Sale" : "Not For Sale"}
                     </p>

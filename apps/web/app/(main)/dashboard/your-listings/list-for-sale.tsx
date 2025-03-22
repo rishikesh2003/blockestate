@@ -4,63 +4,234 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Tag } from "lucide-react";
+import { CreditCard, Tag, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { ethers } from "ethers";
+import { listPropertyForSale, removePropertyFromSale } from "@/lib/blockchain";
+
+// TypeScript declaration for Ethereum provider
+declare global {
+  interface Window {
+    ethereum: any;
+  }
+}
 
 interface ListForSaleProps {
   propertyId: string;
+  blockchainId?: number;
   isForSale: boolean;
   currentPrice?: string;
-  onListingUpdate: () => void;
 }
 
 export function ListForSale({
   propertyId,
+  blockchainId,
   isForSale,
   currentPrice,
-  onListingUpdate,
 }: ListForSaleProps) {
   const [price, setPrice] = useState(currentPrice || "");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleListingUpdate = async (newListingStatus: boolean) => {
+  // Handle removing property from sale with blockchain integration
+  const handleRemoveFromSale = async () => {
     try {
       setIsLoading(true);
 
-      if (newListingStatus && !price) {
+      // Check if property has a blockchain ID
+      if (!blockchainId) {
+        // If no blockchain ID, just use the POST method to update DB only
+        const response = await fetch(
+          `/api/properties/${propertyId}?action=remove-from-sale`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({}),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to remove property from sale");
+        }
+
+        toast.success("Property removed from sale");
+        window.location.reload();
+        return;
+      }
+
+      toast.info("Starting blockchain transaction...");
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error(
+          "No Ethereum accounts found. Please connect your wallet."
+        );
+      }
+
+      // Create provider and signer
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // Call blockchain function to remove property from sale
+      toast.info("Please confirm the transaction in your wallet");
+
+      // Execute the blockchain transaction
+      const txHash = await removePropertyFromSale(signer, blockchainId);
+      console.log(
+        "Property removed from sale on blockchain with transaction:",
+        txHash
+      );
+
+      // Now update the database
+      const response = await fetch(
+        `/api/properties/${propertyId}?action=remove-from-sale`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          error.error || "Failed to update database after removing from sale"
+        );
+      }
+
+      toast.success("Property removed from sale", {
+        description:
+          "Your property has been removed from sale on the blockchain and our database.",
+      });
+
+      // Refresh the property list
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Error removing property from sale:", error);
+
+      // Handle user rejection of transaction
+      if (error.code === 4001) {
+        toast.error("Transaction cancelled", {
+          description: "You cancelled the transaction in your wallet.",
+        });
+      } else {
+        toast.error("Error removing property from sale", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleListForSale = async () => {
+    try {
+      setIsLoading(true);
+
+      if (!price) {
         toast.error("Please enter a price");
         return;
       }
 
-      const response = await fetch(`/api/properties/${propertyId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          isForSale: newListingStatus,
-          price: newListingStatus ? price : currentPrice,
-        }),
+      // For listing for sale, use blockchain integration
+      // Check if property has a blockchain ID
+      if (!blockchainId) {
+        toast.error("Property not found on blockchain", {
+          description:
+            "This property hasn't been registered on the blockchain yet.",
+        });
+        return;
+      }
+
+      // Check if MetaMask is available
+      if (!window.ethereum) {
+        toast.error("MetaMask not detected", {
+          description:
+            "Please install MetaMask to list your property for sale on the blockchain.",
+        });
+        return;
+      }
+
+      toast.info("Starting blockchain transaction...");
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
       });
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error(
+          "No Ethereum accounts found. Please connect your wallet."
+        );
+      }
+
+      // Create provider and signer
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // Call blockchain function to list property for sale
+      toast.info("Please confirm the transaction in your wallet");
+
+      // Execute the blockchain transaction
+      const txHash = await listPropertyForSale(signer, blockchainId, price);
+      console.log("Property listed on blockchain with transaction:", txHash);
+
+      // Now update the database
+      const response = await fetch(
+        `/api/properties/${propertyId}?action=list-for-sale`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            price,
+            transactionHash: txHash,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to update property listing");
+        throw new Error(
+          error.error || "Failed to update property listing in database"
+        );
       }
 
-      toast.success(
-        newListingStatus
-          ? "Property listed for sale"
-          : "Property removed from sale"
-      );
+      toast.success("Property listed for sale", {
+        description:
+          "Your property has been listed for sale on the blockchain and our database.",
+      });
 
       // Refresh the property list
-      onListingUpdate();
-    } catch (error) {
-      console.error("Error updating property listing:", error);
-      toast.error(
-        error instanceof Error ? error.message : "An unknown error occurred"
-      );
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Error listing property for sale:", error);
+
+      // Handle user rejection of transaction
+      if (error.code === 4001) {
+        toast.error("Transaction cancelled", {
+          description: "You cancelled the transaction in your wallet.",
+        });
+      } else {
+        toast.error("Error listing property", {
+          description:
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -86,11 +257,20 @@ export function ListForSale({
               />
             </div>
           </div>
+          {!blockchainId && (
+            <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+              <p className="text-xs text-amber-800">
+                This property hasn&apos;t been registered on the blockchain yet.
+                List it first to get a blockchain ID.
+              </p>
+            </div>
+          )}
           <Button
             className="w-full flex items-center gap-2"
             variant="default"
             disabled={isLoading}
-            onClick={() => handleListingUpdate(true)}
+            onClick={handleListForSale}
           >
             <Tag className="h-4 w-4" />
             List for Sale
@@ -101,7 +281,7 @@ export function ListForSale({
           className="w-full"
           variant="destructive"
           disabled={isLoading}
-          onClick={() => handleListingUpdate(false)}
+          onClick={handleRemoveFromSale}
         >
           Remove Listing
         </Button>

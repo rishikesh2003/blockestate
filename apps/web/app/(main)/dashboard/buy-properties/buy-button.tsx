@@ -6,6 +6,7 @@ import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { ethers } from "ethers";
 import { useUser } from "@clerk/nextjs";
+import { buyProperty } from "@/lib/blockchain";
 
 // TypeScript declaration for Ethereum provider
 declare global {
@@ -14,28 +15,13 @@ declare global {
   }
 }
 
-// Smart contract ABI (Application Binary Interface)
-// This is a simplified ABI for a property transfer contract
-const contractABI = [
-  "function transferProperty(address to, uint256 propertyId) payable",
-  "event PropertyTransferred(uint256 indexed propertyId, address indexed from, address indexed to, uint256 amount)",
-];
-
 interface BuyButtonProps {
-  propertyId: string;
+  propertyId: number;
+  dbPropertyId: string;
   price: string;
-  sellerAddress: string; // The current owner's Ethereum address
-  contractAddress: string; // The address of the deployed smart contract
-  onSuccess: () => void;
 }
 
-export function BuyButton({
-  propertyId,
-  price,
-  sellerAddress,
-  contractAddress,
-  onSuccess,
-}: BuyButtonProps) {
+export function BuyButton({ propertyId, dbPropertyId, price }: BuyButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useUser();
 
@@ -54,64 +40,52 @@ export function BuyButton({
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      const buyerAddress = accounts[0];
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error(
+          "No Ethereum accounts found. Please connect your wallet."
+        );
+      }
 
       // Create a provider and signer
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      // Create contract instance
-      const contract = new ethers.Contract(
-        contractAddress,
-        contractABI,
-        signer
-      );
-
-      // Convert price from ETH to Wei
-      const priceInWei = ethers.parseEther(price);
-
       // Execute the transaction
-      toast.info("Please confirm the transaction in your wallet");
-
-      const tx = await contract.transferProperty(buyerAddress, propertyId, {
-        value: priceInWei,
-        gasLimit: 300000, // Set an appropriate gas limit
+      toast.info("Please confirm the transaction in your wallet", {
+        description: `You are about to purchase this property for ${price} ETH`,
       });
 
-      // Wait for transaction to be mined
-      toast.loading("Processing transaction...");
-      const receipt = await tx.wait();
+      const txHash = await buyProperty(signer, propertyId, price);
+      console.log("Property purchased on blockchain with transaction:", txHash);
 
-      // Get transaction hash
-      const transactionHash = receipt.hash;
-
-      // Record the transaction in our database
-      const response = await fetch("/api/transactions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          propertyId,
-          amount: price,
-          transactionHash,
-          buyerAddress,
-          sellerAddress,
-        }),
-      });
+      // Now update the database
+      const response = await fetch(
+        `/api/properties/${dbPropertyId}?action=buy`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            transactionHash: txHash,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
         throw new Error(
-          error.error || "Failed to record transaction in database"
+          error.error || "Failed to update database after purchase"
         );
       }
 
       toast.success("Property purchased successfully", {
-        description: "The ownership has been transferred to your account",
+        description: "Congratulations! You are now the owner of this property.",
       });
 
-      onSuccess();
+      // Reload page to reflect changes
+      window.location.reload();
     } catch (error: any) {
       console.error("Error purchasing property:", error);
 

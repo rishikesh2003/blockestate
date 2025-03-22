@@ -5,6 +5,7 @@ import { createHash } from "crypto";
 const contractABI = [
   "function addProperty(string memory name, string memory location, uint256 price, string memory documentHash) public",
   "function listPropertyForSale(uint256 propertyId, uint256 price) public",
+  "function removePropertyFromSale(uint256 propertyId) public",
   "function buyProperty(uint256 propertyId) public payable",
   "function verifyProperty(uint256 propertyId) public",
   "function getProperty(uint256 propertyId) public view returns (tuple(uint256 id, string name, string location, uint256 price, address owner, string documentHash, bool isForSale, bool isVerified))",
@@ -12,7 +13,7 @@ const contractABI = [
 
 const CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ||
-  "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+  "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
 
 // Create MD5 hash of document
 export const createDocumentHash = (document: string): string => {
@@ -48,12 +49,47 @@ export const addProperty = async (
   );
   const receipt = await tx.wait();
 
+  console.log("Transaction receipt:", receipt);
+
   // Parse logs to find PropertyAdded event and extract propertyId
-  // This assumes the PropertyAdded event is the first event in the logs
+  // The PropertyAdded event emits: event PropertyAdded(uint256 id, string name, address owner);
   if (receipt && receipt.logs && receipt.logs.length > 0) {
-    // Simple approach: assuming the first log contains the property ID
-    // In a production environment, you would need to decode the logs properly
-    return 1; // Placeholder for actual property ID extraction
+    try {
+      // First approach: Use interface to parse logs
+      const eventInterface = new ethers.Interface([
+        "event PropertyAdded(uint256 id, string name, address owner)",
+      ]);
+
+      for (const log of receipt.logs) {
+        try {
+          const parsedLog = eventInterface.parseLog({
+            topics: log.topics,
+            data: log.data,
+          });
+
+          if (parsedLog && parsedLog.name === "PropertyAdded") {
+            const propertyId = parsedLog.args[0]; // First argument is id
+            console.log("Parsed property ID from event:", propertyId);
+            return Number(propertyId);
+          }
+        } catch (e) {
+          // This log wasn't a PropertyAdded event, continue to next log
+          continue;
+        }
+      }
+
+      // Second approach: Query property count (should match the latest property ID)
+      console.log("Using fallback: querying propertyCount");
+      const propertyCount = await contract.propertyCount;
+      console.log("Property count from contract:", propertyCount);
+      return Number(propertyCount);
+    } catch (err) {
+      console.error("Error getting property ID:", err);
+
+      // Last resort fallback if all else fails
+      console.error("Using last resort fallback");
+      return 1;
+    }
   }
 
   throw new Error("Failed to add property");
@@ -69,9 +105,9 @@ export const listPropertyForSale = async (
   const priceInWei = ethers.parseEther(price);
 
   const tx = await contract.listPropertyForSale(propertyId, priceInWei);
-  await tx.wait();
+  const receipt = await tx.wait();
 
-  return true;
+  return receipt.hash;
 };
 
 // Buy a property
@@ -97,9 +133,9 @@ export const verifyProperty = async (
   const contract = await getContract(signer);
 
   const tx = await contract.verifyProperty(propertyId);
-  await tx.wait();
+  const receipt = await tx.wait();
 
-  return true;
+  return receipt.hash;
 };
 
 // Get property details from blockchain
@@ -121,4 +157,17 @@ export const getProperty = async (
     isForSale: property.isForSale,
     isVerified: property.isVerified,
   };
+};
+
+// Remove property from sale
+export const removePropertyFromSale = async (
+  signer: ethers.JsonRpcSigner,
+  propertyId: number
+) => {
+  const contract = await getContract(signer);
+
+  const tx = await contract.removePropertyFromSale(propertyId);
+  const receipt = await tx.wait();
+
+  return receipt.hash;
 };

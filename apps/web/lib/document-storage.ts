@@ -17,8 +17,8 @@ export async function uploadDocument(
   // Create hash for blockchain storage
   const hash = createDocumentHash(documentText);
 
-  // Simulate a document URL (in production, this would be the IPFS URL or similar)
-  const url = `https://fake-document-storage.com/${document.name}-${Date.now()}`;
+  // Use a consistent dummy URL as requested
+  const url = `https://dummy-document-storage.com/${Date.now()}-${document.name}`;
 
   return {
     url,

@@ -49,13 +49,9 @@ const BuyPropertiesPage = async () => {
     ),
   });
 
-  // Placeholder image for properties
-  const placeholderImages = [
-    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=800&h=500&fit=crop",
-  ];
+  // Default image if property has no image URL
+  const defaultPropertyImage =
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800&h=500&fit=crop";
 
   return (
     <div className="space-y-8">
@@ -68,11 +64,11 @@ const BuyPropertiesPage = async () => {
 
       {propertiesForSale.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {propertiesForSale.map((property, index) => (
+          {propertiesForSale.map((property) => (
             <Card key={property.id} className="overflow-hidden">
               <div className="relative h-48">
                 <Image
-                  src={placeholderImages[index % placeholderImages.length]}
+                  src={property.imgUrl || defaultPropertyImage}
                   alt={property.name}
                   fill
                   className="object-cover"
@@ -89,6 +85,11 @@ const BuyPropertiesPage = async () => {
                 <div>
                   <p className="text-2xl font-bold">ETH {property.price}</p>
                 </div>
+                {property.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {property.description}
+                  </p>
+                )}
                 <div className="flex items-center gap-1 text-sm">
                   <Check className="h-4 w-4 text-green-500" />
                   <span>Verified Property</span>
@@ -106,12 +107,9 @@ const BuyPropertiesPage = async () => {
               </CardContent>
               <CardFooter>
                 <BuyButton
-                  propertyId={property.id}
+                  propertyId={property.blockchainId || 0}
+                  dbPropertyId={property.id}
                   price={property.price || "0"}
-                  onSuccess={() => {
-                    // This will trigger a refresh of the page data
-                    window.location.reload();
-                  }}
                 />
               </CardFooter>
             </Card>

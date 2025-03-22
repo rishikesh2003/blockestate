@@ -1,74 +1,72 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db, schema } from "@blockestate/data";
-import { auth } from "@clerk/nextjs/server";
-import { eq, or, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+
+export const runtime = "nodejs";
 
 // POST /api/transactions - Record a property transaction
 export async function POST(request: Request) {
   try {
+    // Verify user is authenticated
     const { userId } = await auth();
-
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { propertyId, transactionHash, amount } = await request.json();
+    // Get request data
+    const { propertyId, amount, transactionHash } = await request.json();
 
-    // Validate required fields
-    if (!propertyId || !transactionHash || !amount) {
+    if (!propertyId || !amount || !transactionHash) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Get buyer (current user) from database
-    const buyer = await db.query.users.findFirst({
-      where: eq(schema.users.authId, userId),
-    });
+    // Get buyer from database
+    const buyers = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.authId, userId));
 
-    if (!buyer) {
-      return NextResponse.json({ error: "Buyer not found" }, { status: 404 });
+    if (!buyers.length) {
+      return NextResponse.json(
+        { error: "Buyer not found in database" },
+        { status: 404 }
+      );
     }
 
-    // Get property details
-    const property = await db.query.properties.findFirst({
-      where: eq(schema.properties.id, propertyId),
-    });
+    const buyer = buyers[0];
 
-    if (!property) {
+    // Get property details
+    const properties = await db
+      .select()
+      .from(schema.properties)
+      .where(eq(schema.properties.id, propertyId));
+
+    if (!properties.length) {
       return NextResponse.json(
         { error: "Property not found" },
         { status: 404 }
       );
     }
 
-    // Ensure property is for sale
-    if (!property.isForSale) {
-      return NextResponse.json(
-        { error: "Property is not for sale" },
-        { status: 400 }
-      );
-    }
+    const property = properties[0];
 
-    // Ensure property has an owner
-    if (!property.ownerId) {
-      return NextResponse.json(
-        { error: "Property has no owner" },
-        { status: 400 }
-      );
-    }
+    // Get seller details
+    const sellers = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, property.ownerId || ""));
 
-    // Get seller from database
-    const seller = await db.query.users.findFirst({
-      where: eq(schema.users.id, property.ownerId),
-    });
-
-    if (!seller) {
+    if (!sellers.length) {
       return NextResponse.json({ error: "Seller not found" }, { status: 404 });
     }
 
-    // Create transaction record
+    const seller = sellers[0];
+
+    // Record the transaction
     const [transaction] = await db
       .insert(schema.transactions)
       .values({
@@ -80,16 +78,21 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    // Update property ownership and status
+    // Update property ownership
     await db
       .update(schema.properties)
       .set({
         ownerId: buyer.id,
         isForSale: false,
+        updatedAt: new Date(),
       })
       .where(eq(schema.properties.id, propertyId));
 
-    return NextResponse.json({ transaction }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      message: "Transaction recorded and property ownership updated",
+      transaction,
+    });
   } catch (error) {
     console.error("Error recording transaction:", error);
     return NextResponse.json(

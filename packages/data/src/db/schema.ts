@@ -34,6 +34,7 @@ export const properties = pgTable("properties", {
   ownerId: uuid("owner_id").references(() => users.id),
   name: varchar("name", { length: 255 }).notNull(),
   location: varchar("location", { length: 255 }),
+  description: text("description"), // Property description
   documentUrl: text("document_url"), // URL to the stored document
   documentHash: varchar("document_hash", { length: 255 }), // Hash stored on the blockchain
   imgUrl: text("img_url"), // URL to the property image
@@ -63,4 +64,5 @@ export const verifications = pgTable("verifications", {
   propertyId: uuid("property_id").references(() => properties.id),
   verifiedAt: timestamp("verified_at").notNull().defaultNow(),
   status: varchar("status", { length: 20 }).notNull(), // 'pending', 'approved', 'rejected'
+  transactionHash: varchar("transaction_hash", { length: 255 }),
 });
