@@ -30,11 +30,6 @@ export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
 
   const hasUserJustSignedUp = !existingUser;
-  if (hasUserJustSignedUp) {
-    console.log(`New user signed up: ${userId}`);
-
-    // Send welcome email or perform other first-time actions here
-  }
 
   try {
     // Create or update user in database

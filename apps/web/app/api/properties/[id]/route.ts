@@ -292,9 +292,6 @@ export async function POST(
             status: isVerified ? "approved" : "rejected",
             transactionHash: transactionHash,
           });
-          console.log(
-            `Verification created with transaction hash: ${transactionHash}`
-          );
         } catch (insertError) {
           console.error("Error inserting verification record:", insertError);
           // Continue even if verification record creation fails
@@ -360,9 +357,6 @@ export async function POST(
             amount: price,
             transactionHash: transactionHash,
           });
-          console.log(
-            `Listing created with transaction hash: ${transactionHash}`
-          );
         } catch (insertError) {
           console.error("Error inserting transaction record:", insertError);
           // Continue even if transaction record creation fails
@@ -421,9 +415,6 @@ export async function POST(
             amount: "0", // No amount for delisting
             transactionHash: transactionHash,
           });
-          console.log(
-            `Listing removed with transaction hash: ${transactionHash}`
-          );
         } catch (insertError) {
           console.error("Error inserting transaction record:", insertError);
           // Continue even if transaction record creation fails

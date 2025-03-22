@@ -57,7 +57,6 @@ export function BuyButton({ propertyId, dbPropertyId, price }: BuyButtonProps) {
       });
 
       const txHash = await buyProperty(signer, propertyId, price);
-      console.log("Property purchased on blockchain with transaction:", txHash);
 
       // Now update the database
       const response = await fetch(

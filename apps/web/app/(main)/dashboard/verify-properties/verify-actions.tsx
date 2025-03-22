@@ -78,10 +78,6 @@ export function VerifyActions({
 
           // Use the blockchain ID for the blockchain transaction
           transactionHash = await verifyProperty(signer, property.blockchainId);
-          console.log(
-            "Property verified on blockchain. Transaction hash:",
-            transactionHash
-          );
         } catch (chainError: any) {
           // If blockchain verification fails, log and continue with DB update
           console.error("Error during blockchain verification:", chainError);

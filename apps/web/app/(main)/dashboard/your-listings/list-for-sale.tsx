@@ -83,10 +83,6 @@ export function ListForSale({
 
       // Execute the blockchain transaction
       const txHash = await removePropertyFromSale(signer, blockchainId);
-      console.log(
-        "Property removed from sale on blockchain with transaction:",
-        txHash
-      );
 
       // Now update the database
       const response = await fetch(
@@ -185,7 +181,6 @@ export function ListForSale({
 
       // Execute the blockchain transaction
       const txHash = await listPropertyForSale(signer, blockchainId, price);
-      console.log("Property listed on blockchain with transaction:", txHash);
 
       // Now update the database
       const response = await fetch(

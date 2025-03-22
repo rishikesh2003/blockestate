@@ -104,7 +104,6 @@ const Page = () => {
       }
 
       const data = await response.json();
-      console.log("Property created in database:", data);
 
       // Now add to blockchain via MetaMask
       if (!window.ethereum) {
@@ -137,16 +136,6 @@ const Page = () => {
         data.location,
         data.price,
         data.documentHash
-      );
-
-      console.log("Blockchain ID:", blockchainId);
-
-      // Update the database record with the blockchain ID
-      console.log(
-        "Updating database with blockchain ID:",
-        blockchainId,
-        "for property ID:",
-        data.id
       );
 
       if (!data.id) {

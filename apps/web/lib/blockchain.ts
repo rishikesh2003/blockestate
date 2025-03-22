@@ -49,8 +49,6 @@ export const addProperty = async (
   );
   const receipt = await tx.wait();
 
-  console.log("Transaction receipt:", receipt);
-
   // Parse logs to find PropertyAdded event and extract propertyId
   // The PropertyAdded event emits: event PropertyAdded(uint256 id, string name, address owner);
   if (receipt && receipt.logs && receipt.logs.length > 0) {
@@ -69,7 +67,6 @@ export const addProperty = async (
 
           if (parsedLog && parsedLog.name === "PropertyAdded") {
             const propertyId = parsedLog.args[0]; // First argument is id
-            console.log("Parsed property ID from event:", propertyId);
             return Number(propertyId);
           }
         } catch (e) {
@@ -79,9 +76,7 @@ export const addProperty = async (
       }
 
       // Second approach: Query property count (should match the latest property ID)
-      console.log("Using fallback: querying propertyCount");
       const propertyCount = await contract.propertyCount;
-      console.log("Property count from contract:", propertyCount);
       return Number(propertyCount);
     } catch (err) {
       console.error("Error getting property ID:", err);
