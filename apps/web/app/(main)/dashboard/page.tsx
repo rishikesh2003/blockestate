@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Building2, TrendingUp, Wallet } from "lucide-react";
+import { Building2, CheckCircle, Tags, TrendingUp, Wallet } from "lucide-react";
 import Image from "next/image";
 import { db, schema } from "@blockestate/data";
 import { eq } from "drizzle-orm";
@@ -83,6 +83,9 @@ const Page = async () => {
         <h2 className="text-3xl font-bold tracking-tight">
           Welcome{user.username ? `, ${user.username}` : ""}.
         </h2>
+        <p className="text-muted-foreground my-2">
+          {user.primaryWeb3Wallet?.web3Wallet}
+        </p>
         <p className="text-muted-foreground">
           Overview of your real estate portfolio
         </p>

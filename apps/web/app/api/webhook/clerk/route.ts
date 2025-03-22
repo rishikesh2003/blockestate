@@ -29,11 +29,11 @@ export async function GET(request: Request) {
 
   const origin = new URL(request.url).origin;
 
-  const hasUserJustSignedUp = !existingUser;
-
   try {
     // Create or update user in database
     const currUser = await currentUser();
+
+    const govAddress = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
 
     if (existingUser) {
       // User exists, update it
@@ -48,7 +48,10 @@ export async function GET(request: Request) {
       // User doesn't exist, create it
       await db.insert(schema.users).values({
         authId: userId,
-        role: "user",
+        role:
+          currUser?.primaryWeb3Wallet?.web3Wallet === govAddress
+            ? "government"
+            : "user",
         publicKey: currUser?.primaryWeb3Wallet?.web3Wallet,
       });
     }

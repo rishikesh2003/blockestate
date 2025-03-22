@@ -59,8 +59,10 @@ export async function POST(request: Request) {
     const documentUrl = documentUpload.url;
     const documentHash = documentUpload.hash;
 
-    // Since we're not adding to blockchain from the server side (client will handle this),
-    // we insert into database first and update blockchain ID later after client transaction
+    /*
+    Since we're not adding to blockchain from the server side (client will handle this),
+     we insert into database first and update blockchain ID later after client transaction
+    */
 
     // Insert property into database
     const [newProperty] = await db

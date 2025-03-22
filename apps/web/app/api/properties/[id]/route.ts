@@ -49,85 +49,7 @@ export async function GET(
   }
 }
 
-// PUT /api/properties/[id] - Update a property (for listing for sale)
-export async function PUT(
-  req: NextRequest,
-  context: { params: { id: string } }
-) {
-  try {
-    // Await params to handle Next.js async routes
-    const params = await Promise.resolve(context.params);
-
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const propertyId = params.id;
-    const body = await req.json();
-    const { isForSale, price } = body;
-
-    // Get user from database
-    const users = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.authId, userId));
-
-    if (users.length === 0) {
-      return NextResponse.json(
-        { error: "User not found in database" },
-        { status: 404 }
-      );
-    }
-
-    const user = users[0];
-
-    // Check if property exists and belongs to user
-    const properties = await db
-      .select()
-      .from(schema.properties)
-      .where(
-        and(
-          eq(schema.properties.id, propertyId),
-          eq(schema.properties.ownerId, user.id)
-        )
-      );
-
-    if (properties.length === 0) {
-      return NextResponse.json(
-        { error: "Property not found or doesn't belong to you" },
-        { status: 404 }
-      );
-    }
-
-    const property = properties[0];
-
-    // In real implementation, you would call blockchain.listPropertyForSale
-    // with proper signer from client-side
-
-    // Update property in database
-    const updatedProperties = await db
-      .update(schema.properties)
-      .set({
-        isForSale,
-        price: price || property.price,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.properties.id, propertyId))
-      .returning();
-
-    return NextResponse.json(updatedProperties[0]);
-  } catch (error) {
-    console.error("Error updating property:", error);
-    return NextResponse.json(
-      { error: "Failed to update property" },
-      { status: 500 }
-    );
-  }
-}
-
-// POST /api/properties/[id]/buy - Buy a property
+// For - for buying, verifying, listing, removing from sale, updating blockchain ID
 export async function POST(
   req: NextRequest,
   context: { params: { id: string } }
@@ -224,6 +146,14 @@ export async function POST(
       if (!property.isForSale) {
         return NextResponse.json(
           { error: "Property is not for sale" },
+          { status: 400 }
+        );
+      }
+
+      // Make sure property is verified
+      if (!property.isVerified) {
+        return NextResponse.json(
+          { error: "Property is not verified" },
           { status: 400 }
         );
       }
