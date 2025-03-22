@@ -1,5 +1,4 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
-
 import {
   Card,
   CardContent,
@@ -9,50 +8,8 @@ import {
 } from "@/components/ui/card";
 import { Building2, TrendingUp, Wallet } from "lucide-react";
 import Image from "next/image";
-
-const stats = [
-  {
-    title: "Owned Properties",
-    value: "4",
-    icon: Building2,
-    change: "+1 from last month",
-  },
-  {
-    title: "Portfolio Value",
-    value: "ETH 450.89",
-    icon: Wallet,
-    change: "+ETH 45.34 from last month",
-  },
-  {
-    title: "Appreciation",
-    value: "+24.5%",
-    icon: TrendingUp,
-    change: "+5% from last month",
-  },
-];
-
-const properties = [
-  {
-    id: 1,
-    title: "Luxury Villa in Bandra",
-    location: "Mumbai, Maharashtra",
-    value: 250.5,
-    image:
-      "https://images.unsplash.com/photo-1613977257363-707ba9348227?q=80&w=800&h=500&fit=crop",
-    area: "5,000 sq ft",
-    purchaseDate: "Jan 2024",
-  },
-  {
-    id: 2,
-    title: "Modern Apartment in Indiranagar",
-    location: "Bangalore, Karnataka",
-    value: 180.75,
-    image:
-      "https://images.unsplash.com/photo-1574362848149-11496d93a7c7?q=80&w=800&h=500&fit=crop",
-    area: "2,500 sq ft",
-    purchaseDate: "Nov 2023",
-  },
-];
+import { db, schema } from "@blockestate/data";
+import { eq } from "drizzle-orm";
 
 const Page = async () => {
   const { userId: userAuthId } = await auth();
@@ -61,15 +18,70 @@ const Page = async () => {
     throw new Error("User not authenticated");
   }
 
+  // Get user from Clerk
   const client = await clerkClient();
-
   const user = await client.users.getUser(userAuthId);
+
+  // Get user from database
+  const dbUsers = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.authId, userAuthId));
+
+  const dbUser = dbUsers[0];
+
+  if (!dbUser) {
+    // Handle case where user is not in database yet
+    return (
+      <div className="space-y-8">
+        <h2 className="text-3xl font-bold tracking-tight">Welcome!</h2>
+        <p>Setting up your account. Please check back shortly.</p>
+      </div>
+    );
+  }
+
+  // Get user's properties
+  const properties = await db
+    .select()
+    .from(schema.properties)
+    .where(eq(schema.properties.ownerId, dbUser.id));
+
+  // Calculate statistics
+  const totalProperties = properties.length;
+  let portfolioValue = 0;
+
+  properties.forEach((property) => {
+    if (property.price) {
+      portfolioValue += parseFloat(property.price);
+    }
+  });
+
+  const stats = [
+    {
+      title: "Owned Properties",
+      value: totalProperties.toString(),
+      icon: Building2,
+      change: "Updated just now",
+    },
+    {
+      title: "Portfolio Value",
+      value: `ETH ${portfolioValue.toFixed(2)}`,
+      icon: Wallet,
+      change: "Based on current holdings",
+    },
+    {
+      title: "Status",
+      value: totalProperties > 0 ? "Active" : "No Properties",
+      icon: TrendingUp,
+      change: "Real-time status",
+    },
+  ];
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">
-          Welcome, {user.username}.
+          Welcome{user.username ? `, ${user.username}` : ""}.
         </h2>
         <p className="text-muted-foreground">
           Overview of your real estate portfolio
@@ -97,37 +109,58 @@ const Page = async () => {
         <h3 className="text-2xl font-semibold tracking-tight mb-4">
           Your Properties
         </h3>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {properties.map((property) => (
-            <Card key={property.id} className="overflow-hidden">
-              <div className="relative h-48">
-                <Image
-                  src={property.image}
-                  alt={property.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <CardHeader>
-                <CardTitle>{property.title}</CardTitle>
-                <CardDescription>{property.location}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-2xl font-bold">ETH {property.value}</p>
+        {properties.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {properties.map((property) => (
+              <Card key={property.id} className="overflow-hidden">
+                <div className="relative h-48">
+                  <Image
+                    src={
+                      property.imgUrl ||
+                      "https://placehold.co/600x400?text=Property+Image"
+                    }
+                    alt={property.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <CardHeader>
+                  <CardTitle>{property.name}</CardTitle>
+                  <CardDescription>{property.location}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-2xl font-bold">
+                        ETH {property.price || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {property.isVerified
+                          ? "Verified"
+                          : "Pending Verification"}
+                      </p>
+                    </div>
+                    {property.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {property.description}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
-                      {property.area}
+                      Status: {property.isForSale ? "For Sale" : "Not For Sale"}
                     </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Purchased: {property.purchaseDate}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center p-8 border rounded-lg">
+            <p className="text-muted-foreground">
+              You don&apos;t own any properties yet. Add your first property to
+              get started.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ async function main() {
     "0x5fbdb2315678afecb367f032d93f642f64180aa3",
   );
 
-  const property = await propertyRegistry.getProperty(4);
+  const property = await propertyRegistry.getProperty(1);
   console.log("Property:", property);
   console.log("Property successfully retrieved!");
 }

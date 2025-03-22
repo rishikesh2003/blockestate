@@ -1,72 +1,169 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { eq } from "drizzle-orm";
+import { db, schema } from "@blockestate/data";
+import { redirect } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
-import Image from "next/image";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Check, X, Eye } from "lucide-react";
+import Link from "next/link";
+import { ListForSale } from "./list-for-sale";
 
-const properties = [
-  {
-    id: 1,
-    title: "3BHK Apartment in Powai",
-    location: "Mumbai, Maharashtra",
-    price: 150.25,
-    image:
-      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=800&h=500&fit=crop",
-    status: "Listed",
-  },
-  {
-    id: 2,
-    title: "Villa in Koramangala",
-    location: "Bangalore, Karnataka",
-    price: 280.5,
-    image:
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&h=500&fit=crop",
-    status: "Pending",
-  },
-];
+const Page = async () => {
+  const { userId: userAuthId } = await auth();
 
-const Page = () => {
+  if (!userAuthId) {
+    return redirect("/");
+  }
+
+  const client = await clerkClient();
+  const user = await client.users.getUser(userAuthId);
+
+  // Get user from database
+  const dbUser = await db.query.users.findFirst({
+    where: eq(schema.users.authId, userAuthId),
+  });
+
+  if (!dbUser) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">Account Setup Required</h2>
+        <p>Please complete your account setup.</p>
+      </div>
+    );
+  }
+
+  // Get all properties owned by the user
+  const properties = await db.query.properties.findMany({
+    where: eq(schema.properties.ownerId, dbUser.id),
+  });
+
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Your Listings</h2>
-        <p className="text-muted-foreground">Manage your property listings</p>
+        <h2 className="text-3xl font-bold tracking-tight">Your Properties</h2>
+        <p className="text-muted-foreground">
+          View, manage, and list your properties for sale
+        </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {properties.map((property) => (
-          <Card key={property.id} className="overflow-hidden">
-            <div className="relative h-48">
-              <Image
-                src={property.image}
-                alt={property.title}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <CardHeader>
-              <CardTitle>{property.title}</CardTitle>
-              <CardDescription>{property.location}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">ETH {property.price}</p>
-              <p className="text-sm text-muted-foreground">
-                Status: {property.status}
+      <Card>
+        <CardHeader>
+          <CardTitle>My Properties</CardTitle>
+          <CardDescription>
+            List your properties for sale or manage existing listings
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {properties.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Document</TableHead>
+                  <TableHead>List for Sale</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {properties.map((property) => (
+                  <TableRow key={property.id}>
+                    <TableCell className="font-medium">
+                      {property.name}
+                    </TableCell>
+                    <TableCell>{property.location}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px] truncate">
+                        {property.description || "-"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {property.price ? `ETH ${property.price}` : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Badge
+                          className="w-fit"
+                          variant={property.isForSale ? "default" : "outline"}
+                        >
+                          {property.isForSale ? "For Sale" : "Not Listed"}
+                        </Badge>
+                        <div className="flex items-center gap-1 text-xs">
+                          <span>Verified:</span>
+                          {property.isVerified ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <X className="h-3 w-3 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={property.documentUrl || "#"}
+                        target="_blank"
+                        className="flex items-center gap-1 text-blue-600 hover:underline"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View Document
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {property.isVerified ? (
+                        <ListForSale
+                          propertyId={property.id}
+                          blockchainId={
+                            property.blockchainId !== null
+                              ? property.blockchainId
+                              : undefined
+                          }
+                          isForSale={property.isForSale ?? false}
+                          currentPrice={property.price ?? undefined}
+                        />
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Property needs verification
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                You don&apos;t have any properties yet
               </p>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full">Edit Listing</Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+              <div className="mt-4">
+                <Link
+                  href="/dashboard/add-property"
+                  className="text-blue-600 hover:underline"
+                >
+                  Add your first property
+                </Link>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

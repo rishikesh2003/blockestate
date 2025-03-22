@@ -1,0 +1,1 @@
+ALTER TABLE "verifications" ADD COLUMN "transaction_hash" varchar(255);
