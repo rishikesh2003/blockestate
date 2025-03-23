@@ -139,3 +139,4 @@ The system uses a `PropertyRegistry` smart contract that handles:
 - Ownership transfers through purchase transactions
 - Property verification by authorized government addresses
 - Retrieving property details from the blockchain
+  
