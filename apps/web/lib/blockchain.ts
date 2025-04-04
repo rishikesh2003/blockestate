@@ -17,7 +17,7 @@ const CONTRACT_ADDRESS =
 
 // Create MD5 hash of document
 export const createDocumentHash = (document: string): string => {
-  return createHash("md5").update(document).digest("hex");
+  return createHash("sha256").update(document).digest("hex");
 };
 
 // Setup provider and contract instance

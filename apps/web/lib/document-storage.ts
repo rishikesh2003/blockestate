@@ -1,27 +1,70 @@
 import { createDocumentHash } from "./blockchain";
+import { IncomingForm } from "formidable";
+import fs from "fs/promises";
+import path from "path";
 
-// For demonstration purposes, we'll simulate document storage
-// In a production environment, this would connect to a service like IPFS through Pinata, Filebase, etc.
+export async function saveDoc(file: File) {
+  if (!file) {
+    return { error: "No file found" };
+  }
 
-// Simulate uploading a document and getting a URL
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Sanitize filename to avoid path traversal issues
+    const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const filename = `${Date.now()}-${sanitizedFilename}`;
+
+    // Create directory path and ensure it exists
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    const uploadPath = path.join(uploadDir, filename);
+
+    // Make sure the directory exists
+    try {
+      await fs.access(uploadDir);
+    } catch (error) {
+      // Directory doesn't exist, create it
+      await fs.mkdir(uploadDir, { recursive: true });
+    }
+
+    // Now write the file with the buffer
+    await fs.writeFile(uploadPath, buffer);
+
+    return {
+      message: "Upload successful",
+      url: `/uploads/${filename}`,
+    };
+  } catch (error) {
+    console.error("Error saving document:", error);
+    return { error: "Failed to save document" };
+  }
+}
+
 export async function uploadDocument(
   document: File
 ): Promise<{ url: string; hash: string }> {
   // In a real implementation, this would upload to a service like IPFS
   // For demo purposes, we're generating a fake URL
 
+  const formData = new FormData();
+  formData.append("file", document);
+
   // Convert file to buffer for hashing
-  const buffer = await document.arrayBuffer();
+  const buffer = await document.arrayBuffer(); // `document` is a File object
   const documentText = new TextDecoder().decode(buffer);
 
-  // Create hash for blockchain storage
+  // Generate hash for blockchain storage
   const hash = createDocumentHash(documentText);
 
-  // Use a consistent dummy URL as requested
-  const url = `https://dummy-document-storage.com/${Date.now()}-${document.name}`;
+  const result = await saveDoc(document);
+
+  if ("error" in result) {
+    throw new Error(result.error as string);
+  }
 
   return {
-    url,
+    url: result.url,
     hash,
   };
 }
